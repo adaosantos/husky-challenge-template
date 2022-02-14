@@ -1,0 +1,51 @@
+version: '3.8'
+volumes:
+  pg-data:
+  redis-data:
+
+services:
+  base: &base
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    image: nexaas_billing:latest
+    stdin_open: true
+    tty: true
+    volumes:
+      - $HOME/.bashrc:/home/husky/.bashrc
+      - $HOME/.bash_history:/home/nexaas/.bash_history
+  app:
+    <<: *base
+    command: /bin/bash -c 'yarn install && ./bin/dev'
+    ports:
+      - '3000:3000'
+    environment:
+      REDIS_HOST: redis
+      DATABASE_HOST: db
+      DATABASE_USERNAME: husky_challenge
+      DATABASE_PASSWORD: husky_secret
+    volumes:
+      - ./:/husky/
+    depends_on:
+      - db
+      - redis
+  db:
+    hostname: db
+    container_name: husky.db
+    image: postgres:alpine
+    ports:
+      - '15432:5432'
+    volumes:
+      - pg-data:/var/lib/postgresql/data/
+    environment:
+      POSTGRES_USER: husky_challenge
+      POSTGRES_PASSWORD: husky_secret
+
+  redis:
+    hostname: redis
+    container_name: husky.redis
+    image: redis:alpine
+    volumes:
+      - redis-data:/var/lib/redis
+    ports:
+      - '16379:6379'
